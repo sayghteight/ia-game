@@ -75,4 +75,99 @@ class MinimaxService
             'raw' => $data,
         ];
     }
+
+    /**
+     * Versión streaming de chat(): invoca a la API con `stream: true`
+     * y va llamando a $onDelta con cada fragmento de contenido recibido.
+     *
+     * Al finalizar, devuelve el contenido acumulado y los tokens.
+     *
+     * @param  array<int, array{role: string, content: string}>  $messages
+     * @return array{content: string, tokens_input: ?int, tokens_output: ?int}
+     */
+    public function streamChat(array $messages, callable $onDelta, float $temperature = 0.85): array
+    {
+        if (empty($this->apiKey)) {
+            throw new \RuntimeException('Falta la API key de MiniMax. Define MINIMAX_API_KEY en tu .env');
+        }
+
+        $client = new \GuzzleHttp\Client([
+            'timeout' => 180,
+            'connect_timeout' => 30,
+        ]);
+
+        /** @var \GuzzleHttp\Psr7\Response $response */
+        $response = $client->post($this->baseUrl . '/chat/completions', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
+                'Accept' => 'text/event-stream',
+            ],
+            'json' => [
+                'model' => $this->model,
+                'messages' => $messages,
+                'temperature' => $temperature,
+                'stream' => true,
+                'reasoning_split' => true,
+            ],
+            'stream' => true,
+        ]);
+
+        $body = $response->getBody();
+        $content = '';
+        $tokensInput = null;
+        $tokensOutput = null;
+        $buffer = '';
+
+        while (! $body->eof()) {
+            $chunk = $body->read(1024);
+            if ($chunk === '' || $chunk === false) {
+                usleep(10000);
+                continue;
+            }
+            $buffer .= $chunk;
+
+            // Procesa líneas completas terminadas en \n
+            while (($pos = strpos($buffer, "\n")) !== false) {
+                $line = substr($buffer, 0, $pos);
+                $buffer = substr($buffer, $pos + 1);
+                $line = rtrim($line, "\r");
+
+                if ($line === '' || ! str_starts_with($line, 'data:')) {
+                    continue;
+                }
+
+                $payload = trim(substr($line, 5));
+                if ($payload === '' || $payload === '[DONE]') {
+                    continue;
+                }
+
+                $data = json_decode($payload, true);
+                if (! is_array($data)) {
+                    continue;
+                }
+
+                $delta = data_get($data, 'choices.0.delta.content');
+                if (is_string($delta) && $delta !== '') {
+                    // Filtro de seguridad por si llega un bloque <think>…</think> en streaming
+                    $clean = preg_replace('/<think>.*?<\/think>/s', '', $delta) ?? '';
+                    if ($clean !== '') {
+                        $content .= $clean;
+                        $onDelta($clean);
+                    }
+                }
+
+                if (isset($data['usage']) && is_array($data['usage'])) {
+                    $tokensInput = isset($data['usage']['prompt_tokens']) ? (int) $data['usage']['prompt_tokens'] : null;
+                    $tokensOutput = isset($data['usage']['completion_tokens']) ? (int) $data['usage']['completion_tokens'] : null;
+                }
+            }
+        }
+
+        return [
+            'content' => $content,
+            'tokens_input' => $tokensInput,
+            'tokens_output' => $tokensOutput,
+        ];
+    }
 }

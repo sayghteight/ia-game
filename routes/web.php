@@ -8,6 +8,7 @@ Route::get('/games/create', [GameController::class, 'create'])->name('games.crea
 Route::post('/games', [GameController::class, 'store'])->name('games.store');
 Route::get('/games/{game}', [GameController::class, 'show'])->name('games.show');
 Route::post('/games/{game}/act', [GameController::class, 'act'])->name('games.act');
+Route::post('/games/{game}/act/stream', [GameController::class, 'stream'])->name('games.act.stream');
 Route::delete('/games/{game}', [GameController::class, 'destroy'])->name('games.destroy');
 
 Route::get('/prompt', [GameController::class, 'promptEdit'])->name('games.prompt.edit');
