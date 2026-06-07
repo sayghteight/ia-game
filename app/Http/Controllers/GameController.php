@@ -138,10 +138,15 @@ class GameController extends Controller
             . "- HP: {$game->hp}/{$game->hp_max}\n"
             . "- Oro: {$game->gold}\n"
             . "- XP: {$game->experience}\n"
-            . "- Inventario: " . implode(', ', $game->inventory_list) . "\n"
-            . "- Notas del mundo: " . ($game->status_notes ?: 'Sin notas aún.') . "\n";
+            . "- Inventario: " . implode(', ', $game->inventory_list) . "\n";
 
-        return $base . $characterBlock;
+        $stateBlock = "\n## Estado de la partida (CANON, no lo cambies sin motivo)\n"
+            . "- Ubicación actual: {$game->location}\n"
+            . "- Notas del mundo: " . ($game->status_notes ?: 'Sin notas aún.') . "\n\n"
+            . "Recuerda: tu narración de este turno debe ocurrir en '{$game->location}' "
+            . "salvo que el jugador se desplace de forma explícita.\n";
+
+        return $base . $characterBlock . $stateBlock;
     }
 
     /**

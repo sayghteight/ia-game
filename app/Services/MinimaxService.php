@@ -35,6 +35,9 @@ class MinimaxService
             'messages' => $messages,
             'temperature' => $temperature,
             'stream' => false,
+            // MiniMax M2.7/M3 separan el "razonamiento" en reasoning_details
+            // y devuelven SOLO la respuesta final en `content`.
+            'reasoning_split' => true,
         ];
 
         /** @var PendingRequest $request */
@@ -57,6 +60,11 @@ class MinimaxService
 
         $data = $response->json();
         $content = data_get($data, 'choices.0.message.content', '');
+
+        // Filtro de seguridad: si el modelo aún incluye bloques <think>…</think>
+        // (algunas versiones/fallbacks lo hacen), los eliminamos del contenido.
+        $content = preg_replace('/<think>.*?<\/think>/s', '', (string) $content);
+        $content = trim((string) $content);
 
         $usage = $data['usage'] ?? [];
 
