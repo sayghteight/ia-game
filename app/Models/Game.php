@@ -4,41 +4,38 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Game extends Model
 {
     protected $fillable = [
-        'title',
-        'character_name',
-        'character_class',
-        'hp',
-        'hp_max',
-        'gold',
-        'level',
-        'experience',
-        'location',
-        'inventory',
-        'status_notes',
-        'is_active',
+        'code', 'pin', 'title', 'current_round',
+        'location', 'world_notes',
     ];
 
     protected $casts = [
-        'inventory' => 'array',
-        'hp' => 'integer',
-        'hp_max' => 'integer',
-        'gold' => 'integer',
-        'level' => 'integer',
-        'experience' => 'integer',
-        'is_active' => 'boolean',
+        'current_round' => 'integer',
     ];
+
+    public function players(): HasMany
+    {
+        return $this->hasMany(Player::class)->orderBy('created_at');
+    }
+
+    public function creator(): HasOne
+    {
+        return $this->hasOne(Player::class)->where('is_creator', true);
+    }
 
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class)->orderBy('created_at')->orderBy('id');
     }
 
-    public function getInventoryListAttribute(): array
+    public function pendingMessages(): HasMany
     {
-        return is_array($this->inventory) ? $this->inventory : [];
+        return $this->hasMany(Message::class)
+            ->where('status', 'pending')
+            ->orderBy('created_at');
     }
 }
