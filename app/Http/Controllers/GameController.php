@@ -44,7 +44,6 @@ class GameController extends Controller
 
     public function store(Request $request)
     {
-        set_time_limit(180);
         $data = $request->validate([
             'title' => 'required|string|max:120',
             'name' => 'required|string|max:60',
@@ -57,25 +56,13 @@ class GameController extends Controller
             'code' => $this->generateUniqueCode(),
             'pin' => $data['pin'] ?? $this->generatePin(),
             'title' => $data['title'],
+            'status' => Game::STATUS_LOBBY,
             'current_round' => 1,
             'location' => 'Inicio',
             'world_notes' => 'Comienzo de la aventura.',
         ]);
 
         $player = $this->createPlayer($game, $data, isCreator: true);
-
-        // Mensaje de sistema con prompt del GM (se inyecta al construirse el payload)
-        // y un primer "user" del GM para arrancar la partida.
-        Message::create([
-            'game_id' => $game->id,
-            'player_id' => null,
-            'role' => 'user',
-            'content' => "Comienza la aventura. Narra el arranque del mundo para el grupo de héroes. Termina con el bloque [STATE] inicial (world).",
-            'round' => 1,
-            'status' => 'pending',
-        ]);
-
-        $this->callGameMaster($game, true);
 
         return $this->redirectToGame($game, $player);
     }

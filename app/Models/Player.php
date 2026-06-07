@@ -11,7 +11,7 @@ class Player extends Model
     protected $fillable = [
         'game_id', 'name', 'character_name', 'character_class',
         'hp', 'hp_max', 'gold', 'level', 'xp', 'inventory',
-        'session_token', 'is_creator',
+        'session_token', 'is_creator', 'is_ready',
     ];
 
     protected $hidden = ['session_token'];
@@ -24,6 +24,7 @@ class Player extends Model
         'level' => 'integer',
         'xp' => 'integer',
         'is_creator' => 'boolean',
+        'is_ready' => 'boolean',
     ];
 
     public function game(): BelongsTo

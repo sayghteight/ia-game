@@ -9,13 +9,28 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Game extends Model
 {
     protected $fillable = [
-        'code', 'pin', 'title', 'current_round',
+        'code', 'pin', 'title', 'status', 'started_at', 'current_round',
         'location', 'world_notes',
     ];
 
     protected $casts = [
         'current_round' => 'integer',
+        'started_at' => 'datetime',
     ];
+
+    public const STATUS_LOBBY = 'lobby';
+    public const STATUS_PLAYING = 'playing';
+    public const STATUS_FINISHED = 'finished';
+
+    public function isLobby(): bool
+    {
+        return $this->status === self::STATUS_LOBBY;
+    }
+
+    public function isPlaying(): bool
+    {
+        return $this->status === self::STATUS_PLAYING;
+    }
 
     public function players(): HasMany
     {
